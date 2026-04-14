@@ -1,0 +1,13 @@
+# Secrets — never commit these
+wireguard/
+peer1.conf
+*.pem
+*.key
+
+# Build outputs
+bin/
+obj/
+.vs/
+
+# Docker volumes
+pgdata/
