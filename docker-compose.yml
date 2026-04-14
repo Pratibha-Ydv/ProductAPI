@@ -1,0 +1,68 @@
+version: '3.8'
+
+networks:
+  prime_network:
+  
+   driver: bridge
+   ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+services:
+
+  wireguard:
+    image: linuxserver/wireguard:latest
+    container_name: vpn_gateway
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv4.ip_forward=1
+    volumes:
+      - ./wireguard:/config/wg_confs
+    ports:
+      - "51820:51820/udp"   
+    networks:
+      prime_network:
+        ipv4_address: 172.20.0.10
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: prime_app
+    depends_on:
+      db:
+        condition: service_healthy
+      wireguard:
+        condition: service_started
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=prime_db;Username=postgres;Password=postgres
+      
+    networks:
+      prime_network:
+        ipv4_address: 172.20.0.20
+           
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    container_name: prime_db
+    environment:
+      POSTGRES_DB: prime_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    networks:
+      prime_network:
+        ipv4_address: 172.20.0.30
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d prime_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:
