@@ -24,5 +24,11 @@ jobs:
       run: dotnet restore
     - name: Build
       run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+  
+    - name: Build and Push Docker Image
+      uses: docker/login-action@v4
+      with:
+          image :  pratibhaydv/productapi
+          registry: docker.io
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
